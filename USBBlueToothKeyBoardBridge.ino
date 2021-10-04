@@ -348,6 +348,8 @@ struct {
   { 0xE7, RightCmd }
 };
 
+void setupBTLE(bool fr=false);
+
 class MyKeyBoardController : public KeyboardController {
   protected:
    const int8_t MODLDIDX=19; 
@@ -379,7 +381,7 @@ class MyKeyBoardController : public KeyboardController {
       }
      }
    };
-
+   
    virtual void OnKeyDown(uint8_t mod, uint8_t key) {
  #ifdef DEBUG   
       Serial1.print("+ pressed_:");
@@ -390,6 +392,8 @@ class MyKeyBoardController : public KeyboardController {
       Serial1.println(key,HEX);
 #endif      
       int i=0;
+
+      if ((mod == 0xf) && (key == 0x15) ) setupBTLE(true);
       
       for (; i<6; i++) {
         if (!(pressed_ & 1<<i)) break;
@@ -458,7 +462,7 @@ void printKey();
 
 uint32_t lastUSBstate = 0;
 
-void setupBTLE()
+void setupBTLE(bool fr)
 {
   /* Initialise the module */
 #ifdef DEBUG  
@@ -473,7 +477,7 @@ void setupBTLE()
   SerialDebug.println( F("OK!") );
 #endif
 
-  if ( FACTORYRESET_ENABLE )
+  if ( FACTORYRESET_ENABLE || fr )
   {
     /* Perform a factory reset to make sure everything is in a known state */
     SerialDebug.println(F("Performing a factory reset: "));
