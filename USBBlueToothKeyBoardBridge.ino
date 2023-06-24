@@ -33,6 +33,11 @@
 
 //#define DEBUG
 
+
+#define MAGIC_BLE_RESET
+#define MAGIC_MODIFIERS (  LeftCtrl | LeftShift | Alt | LeftCmd )
+// scan code for r 0x15
+#define MAGIC_KEY       ( 0x15 )
 /*=========================================================================
     APPLICATION SETTINGS
 
@@ -333,59 +338,47 @@ struct {
 };
 
 
-
-struct {
-  uint8_t kc;
-  uint8_t mask;
-} const ModsDesc[] = {
-  { 0xE0, LeftCtrl },
-  { 0xE1, LeftShift },
-  { 0xE2, Alt },
-  { 0xE3, LeftCmd },
-  { 0xE4, RightCtrl },
-  { 0xE5, RightShift },
-  { 0xE6, AltGr },
-  { 0xE7, RightCmd }
-};
-
 void setupBTLE(bool fr=false);
 
 class MyKeyBoardController : public KeyboardController {
   protected:
    const int8_t MODLDIDX=19; 
-   uint8_t pressed_;
+   uint8_t pressedKeys_;
+   uint8_t pressedModifiers_;
+   // not sure that pressedArray_ is not causing trouble.
    uint8_t pressedArray_[6];
    const int8_t keyLdIdx_[6] = { 25, 28, 31, 34, 37, 40 }; 
    char    pressedString_[42+2]; 
   
-   
+   inline void sendString() {
+#ifdef DEBUG        
+        Serial1.println(pressedString_);
+#endif        
+        ble.write(pressedString_,43);
+   }
+
    virtual void OnControlKeysChanged(uint8_t before, uint8_t after) {
 #ifdef DEBUG
      Serial1.print("OCKC before: ");
-     Serial1.print(before,HEX);
-     Serial1.print(":");
-     Serial1.print(before & LeftCtrl);
+     Serial1.print(before, HEX);
      Serial1.print(" after:");
-     Serial1.print(after,HEX);
-     Serial1.print(":");
-     Serial1.println(after & LeftCtrl);
+     Serial1.println(after, HEX);
 #endif
-
-     for (int m=0; m<sizeof(ModsDesc); m++) {
-      uint8_t mask = ModsDesc[m].mask;
-      uint8_t kc = ModsDesc[m].kc;
-      if ( !(before & mask) && (after & mask)) {
-        OnKeyDown(after, kc);
-      } else if ((before & mask) && !(after & mask)) {
-        OnKeyUp(after, kc);
-      }
-     }
+     // update modifier state
+     pressedModifiers_ = after;
+     pressedString_[MODLDIDX]   = trantable[pressedModifiers_].ld;
+     pressedString_[MODLDIDX+1] = trantable[pressedModifiers_].rd;
+     
+     // will work for both press and release
+     sendString();
    };
-   
+
    virtual void OnKeyDown(uint8_t mod, uint8_t key) {
+     // we only update key scan codes modifiers are handled
+     // on control key updates above
  #ifdef DEBUG   
       Serial1.print("+ pressed_:");
-      Serial1.print(pressed_,HEX);
+      Serial1.print(pressedKeys_,HEX);
       Serial1.print(" m:");
       Serial1.print(mod,HEX);
       Serial1.print(" k:");
@@ -393,26 +386,24 @@ class MyKeyBoardController : public KeyboardController {
 #endif      
       int i=0;
 
-      if ((mod == 0xf) && (key == 0x15) ) setupBTLE(true);
-      
+#ifdef MAGIC_BLE_RESET
+      // 
+      if ( (mod == MAGIC_MODIFIERS) && (key == MAGIC_KEY) ) setupBTLE(true);
+#endif
+      // look for a free slot to track a key
       for (; i<6; i++) {
-        if (!(pressed_ & 1<<i)) break;
+        if (!(pressedKeys_ & 1<<i)) break;
       }
-
+      
       if (i<6) {
+        // found a free key slot update string with key scan code 
         uint8_t kldIdx = keyLdIdx_[i];
-        pressedString_[MODLDIDX]   = trantable[mod].ld;
-        pressedString_[MODLDIDX+1] = trantable[mod].rd;
         pressedString_[kldIdx] = trantable[key].ld;
         pressedString_[kldIdx+1] = trantable[key].rd;
-        pressed_ |= ((uint8_t)1<<i);
+        pressedKeys_ |= ((uint8_t)1<<i);
         pressedArray_[i] = key;
-#ifdef DEBUG        
-        Serial1.println(pressedString_);
-#endif        
-        ble.write(pressedString_,43);
       }
-    
+      sendString();
    };
 
    virtual void OnKeyUp(uint8_t mod, uint8_t key) {
@@ -423,22 +414,20 @@ class MyKeyBoardController : public KeyboardController {
       Serial1.println(key,HEX);
 #endif
       for (int i=0; i<6; i++) {
-        if ((pressed_ & ((uint8_t)1<<i)) && (pressedArray_[i] == key)) {
+        if ((pressedKeys_ & ((uint8_t)1<<i)) && (pressedArray_[i] == key)) {
           uint8_t kldIdx = keyLdIdx_[i];
-          pressedString_[MODLDIDX]   = trantable[mod].ld;
-          pressedString_[MODLDIDX+1] = trantable[mod].rd;
           pressedString_[kldIdx] = '0';
           pressedString_[kldIdx+1] = '0';
-          pressed_ &= ~(((uint8_t)1) << i);
-#ifdef DEBUG          
-          Serial1.println(pressedString_);
-#endif          
-          ble.write(pressedString_,43);
+          pressedKeys_ &= ~(((uint8_t)1) << i);
         }
       }
+#ifdef DEBUG          
+      Serial1.println(pressedString_);
+#endif          
+      ble.write(pressedString_,43);
    };
   public:
-   MyKeyBoardController(USBHost &usb) : KeyboardController(usb), pressed_(0) { 
+   MyKeyBoardController(USBHost &usb) : KeyboardController(usb), pressedKeys_(0), pressedModifiers_(0) { 
       strncpy(pressedString_,"AT+BLEKEYBOARDCODE=00-00-00-00-00-00-00-00\n",sizeof(pressedString_));
     }
   
