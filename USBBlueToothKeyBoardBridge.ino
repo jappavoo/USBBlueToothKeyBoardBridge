@@ -65,9 +65,19 @@
                               bonding data stored on the chip, meaning the
                               central device won't be able to reconnect.
     MINIMUM_FIRMWARE_VERSION  Minimum firmware version to have some new features
+    MODE_LED_BEHAVIOUR        LED activity, valid options are
+                              "DISABLE" or "MODE" or "BLEUART" or
+                              "HWUART"  or "SPI"  or "MANUAL"
     -----------------------------------------------------------------------*/
     #define FACTORYRESET_ENABLE         0
     #define MINIMUM_FIRMWARE_VERSION    "0.6.6"
+    #ifdef DEBUG
+    #define MODE_LED_BEHAVIOUR          "MODE"
+    //#define MODE_LED_BEHAVIOUR "DISABLE"
+    #else
+    // save energy turn off bluetooth leds
+    #define MODE_LED_BEHAVIOUR "DISABLE"
+    #endif
 /*=========================================================================*/
 
 
@@ -475,6 +485,12 @@ void setupBTLE(bool fr)
     }
   }
 
+ // Change Mode LED Activity
+#ifdef DEBUG
+  SerialDebug.println(F("Change LED activity to " MODE_LED_BEHAVIOUR));
+#endif
+ble.sendCommandCheckOK("AT+HWModeLED=" MODE_LED_BEHAVIOUR);
+
   /* Disable command echo from Bluefruit */
   ble.echo(false);
 
@@ -509,6 +525,8 @@ void setupBTLE(bool fr)
     }
   }
 
+
+  
   /* Add or remove service requires a reset */
 #ifdef DEBUG  
   SerialDebug.println(F("Performing a SW reset (service changes require a reset): "));
@@ -529,16 +547,21 @@ void setupBTLE(bool fr)
 
 void setup()
 {
-  
-  SerialDebug.begin( 115200 );
-#ifdef DEBUG  
+  pinMode(13,OUTPUT);
+  digitalWrite(13, LOW);
+
+#ifdef DEBUG 
+   SerialDebug.begin( 115200 ); 
   SerialDebug.println("USBHost to BlueTooth LE Keyboard Bridge Program started");
 #endif
 
   setupBTLE();
 
-  if (usb.Init() == -1)
+  if (usb.Init() == -1) {
+#if DEBUG
 	  SerialDebug.println("USB Host did not start.");
+#endif
+  }
 
 #ifdef DEBUG
   SerialDebug.println("USB Host started");
