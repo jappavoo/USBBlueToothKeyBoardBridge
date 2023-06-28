@@ -7,6 +7,8 @@ So the function version I am using is the QTPY version which has native support 
 BLE and USB.  Code was very hard to find for host usb communications.  See comments in code
 for where I finally found some working examples.
 
+SEE git@github.com:jappavoo/javortex.git for my QMK configuration for the keyboard
+
 TODOS:
 SW:
 1. Media keys like mute, volume up and down are not working
@@ -17,7 +19,8 @@ HW:
 Replace current battery with a bigger one to improve battery life time.
 
 PARTS and connections
-   1. Keebio Fourier 1.2 Keyboard kit
+   1. Keebio Fourier 1.2 Keyboard kit (See my QMK repo for firmware setup
+      git@github.com:jappavoo/javortex.git)
    2. Two Elite-c controlers -- I socketed them on to the keyboard pcb 
    3. 3D printed case -- adjusted middle height + 5 mm to account for socketed elite-c controllers
    4. Adafruit PowerBoost 500 -- charge battery, provide +5 volts for usb vbus, and use enable to
