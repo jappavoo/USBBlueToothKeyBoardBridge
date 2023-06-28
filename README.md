@@ -7,7 +7,15 @@ So the function version I am using is the QTPY version which has native support 
 BLE and USB.  Code was very hard to find for host usb communications.  See comments in code
 for where I finally found some working examples.
 
-SEE git@github.com:jappavoo/javortex.git for my QMK configuration for the keyboard
+WARNING: POWERBOOST 500 cannot deal with input voltage on it's 5 volt output so
+we cannot have a usb connection to a computer and the powerboost at the same time!
+only use usb connections after disconnection powerboost from the usb VBUS.
+(see notes in Adafruit doc regarding output)
+
+Charging: To fully charge battery you will need to turn off keyboad as powerboost charge
+rate may not be enough to both power device and charge battery.
+
+Keyboard configuration: SEE git@github.com:jappavoo/javortex.git for my QMK configuration for the keyboard
 
 TODOS:
 SW:
@@ -17,6 +25,8 @@ SW:
 
 HW:
 Replace current battery with a bigger one to improve battery life time.
+maybe add a switch to the output of the power boost to enable usb operation without opening and
+disconnecting cables
 
 PARTS and connections
    1. Keebio Fourier 1.2 Keyboard kit (See my QMK repo for firmware setup
